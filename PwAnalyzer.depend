@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1649488612 source:c:\programming\codeblocks\PwAnalyzer\main.cpp
+	<iostream>
+	<ctime>
+	<cstdlib>
+	<conio.h>
+
+1649488901 source:c:\programming\codeblocks\pwanalyzer\main.cpp
+	<iostream>
+	<ctime>
+	<cstdlib>
+	<conio.h>
+
