@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <conio.h>
 
+
 using namespace std;
 
 const int LBOUND_NUMBER = 48;
@@ -25,7 +26,7 @@ const int UBOUND_UCASE  = 90;
 const int LBOUND_LCASE  = 97;
 const int UBOUND_LCASE  = 122;
 
-const int LBOUND_SYMB1  = 33;
+const int LBOUND_SYMB1  = 32;
 const int UBOUND_SYMB1  = 47;
 
 const int LBOUND_SYMB2  = 58;
@@ -36,6 +37,12 @@ const int UBOUND_SYMB3  = 96;
 
 const int LBOUND_SYMB4  = 123;
 const int UBOUND_SYMB4  = 126;
+
+const int LBOUND_ASCII_PRINTABLE = LBOUND_SYMB1;
+const int UBOUND_ASCII_PRINTABLE = UBOUND_SYMB4;
+
+const int ENTER = 13;
+const int BACKSPACE = 8;
 
 const int MAX_LENGTH  = 50;
 
@@ -64,6 +71,55 @@ struct PwString {
     }
 };
 
+enum InputType {
+    OTHER       = 0,
+    NUMERIC     = 1,
+    SYMBOL      = 2,
+    CHAR_UCASE  = 3,
+    CHAR_LCASE  = 4,
+};
+
+InputType validateChar(char& chr) {
+    int asciiCode = (int)chr;
+
+     // Check number
+    if(asciiCode >= LBOUND_NUMBER && asciiCode <= UBOUND_NUMBER){
+        return InputType::NUMERIC;
+    }
+
+    // Check U-Case
+    if(asciiCode >= LBOUND_UCASE && asciiCode <= UBOUND_UCASE){
+       return InputType::CHAR_UCASE;
+    }
+
+    // Check L-Case
+    if(asciiCode >= LBOUND_LCASE && asciiCode <= UBOUND_LCASE){
+        return InputType::CHAR_LCASE;
+    }
+
+    // Check symbol / special character
+    if(asciiCode >= LBOUND_SYMB1 && asciiCode <= UBOUND_SYMB1){
+        return InputType::SYMBOL;
+    }
+
+    // Check symbol / special character
+    if(asciiCode >= LBOUND_SYMB2 && asciiCode <= UBOUND_SYMB2){
+        return InputType::SYMBOL;
+    }
+
+    // Check symbol / special character
+    if(asciiCode >= LBOUND_SYMB3 && asciiCode <= UBOUND_SYMB3){
+        return InputType::SYMBOL;
+    }
+
+    // Check symbol / special character
+    if(asciiCode >= LBOUND_SYMB4 && asciiCode <= UBOUND_SYMB4){
+        return InputType::SYMBOL;
+    }
+
+    return InputType::OTHER;
+}
+
 /**
 *
 * Analyze password strength
@@ -71,7 +127,7 @@ struct PwString {
 void analyze(PwString& password) {
 
     char*& input = password.container;
-    int length   = password.length;
+    int& length  = password.length;
 
     int strength = 0; // Default score is 0
 
@@ -93,50 +149,28 @@ void analyze(PwString& password) {
     // Analyze char per char
     for(int i = 0; i < length; i++){
 
-        //Skip the analyzer if any given criteria are met
-        if(hasUCase && hasLCase && hasNumber && hasSymbol){
-            break;
-        }
+        InputType type = validateChar(input[i]);
 
-        int asciiCode = (int)input[i];
-
-        // Check number
-        if(asciiCode >= LBOUND_NUMBER && asciiCode <= UBOUND_NUMBER){
+        switch(type) {
+        case NUMERIC:
             hasNumber = true;
-            continue;
-        }
+            break;
 
-        // Check U-Case
-        if(asciiCode >= LBOUND_UCASE && asciiCode <= UBOUND_UCASE){
+        case SYMBOL:
+            hasSymbol = true;
+            break;
+
+        case CHAR_UCASE:
             hasUCase = true;
-            continue;
-        }
+            break;
 
-        // Check L-Case
-        if(asciiCode >= LBOUND_LCASE && asciiCode <= UBOUND_LCASE){
+        case CHAR_LCASE:
             hasLCase = true;
-            continue;
-        }
+            break;
 
-        // Check symbol / special character
-        if(asciiCode >= LBOUND_SYMB1 && asciiCode <= UBOUND_SYMB1){
-            hasSymbol = true;
-            continue;
-        }
-
-        if(asciiCode >= LBOUND_SYMB2 && asciiCode <= UBOUND_SYMB2){
-            hasSymbol = true;
-            continue;
-        }
-
-        if(asciiCode >= LBOUND_SYMB3 && asciiCode <= UBOUND_SYMB3){
-            hasSymbol = true;
-            continue;
-        }
-
-        if(asciiCode >= LBOUND_SYMB4 && asciiCode <= UBOUND_SYMB4){
-            hasSymbol = true;
-            continue;
+        default:
+            // NoOp
+            break;
         }
     }
 
@@ -206,7 +240,7 @@ void analyze(PwString& password) {
 *   read password masked
 */
 PwString readPassword() {
-    char* x = new char[20];
+    char* x = new char[MAX_LENGTH];
 
     // Initialization, set pointer value to null
     for(int i = 0; i < MAX_LENGTH; i++){
@@ -214,20 +248,25 @@ PwString readPassword() {
     }
 
     // Mask input password
+
+    // Any special character made by combination of null any any other character.
+    bool skipFlag = false;
     for(int i = 0; i < MAX_LENGTH;){
         char input = getch();
+
+        if(skipFlag){
+            skipFlag = false;
+            continue;
+        }
 
         // if input is enter, stop loop
         if(input == '\r') {
             cout << endl;
             return PwString(x, i);
-            break;
         }
 
-        x[i] = input;
-
         // if input is backspace
-        if(x[i] == '\b'){
+        if(input == '\b'){
             if(i > 0){
                 x[--i] = '\0'; //make the previous byte null if backspace is pressed
                 cout << "\b" << " " << "\b"; // Remove mask by whitespace
@@ -236,6 +275,22 @@ PwString readPassword() {
             continue;
         }
 
+        // Validate ASCII printable char
+        int asciiCode = (int) input;
+        if(asciiCode == -32 || asciiCode == 0){
+            skipFlag = true;
+            continue;
+        }
+
+        if(asciiCode < LBOUND_ASCII_PRINTABLE) {
+            continue;
+        }
+
+        if(asciiCode > UBOUND_ASCII_PRINTABLE) {
+            continue;
+        }
+
+        x[i] = input;
         i += 1;
         cout << "*";
     }
